@@ -33,11 +33,10 @@ class AppController {
   @Post("/deploy")
   public async deploy(@Body() req: DeployRequest): Promise<DeployResponse> {
       
-      await this.runtime.deploy(req.source)
+      await this.runtime.deploy(req.appID, req.source)
 
       return { status: 200, appID: req.appID }
   }
-
 }
 
 export {

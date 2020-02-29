@@ -1,13 +1,14 @@
 import { Runtime } from "./runtime";
 import { RuntimeServer } from "./http/server";
 import { Compiler } from "./storyscript/compiler";
+import { AppRepository } from "./postgres/apps";
 
 async function main() {
-    
     const compiler = new Compiler();
     await compiler.start();
 
-    const runtime: Runtime = new Runtime(compiler);
+    const appRepository: AppRepository = new AppRepository();
+    const runtime: Runtime = new Runtime(compiler, appRepository);
 
     const server: RuntimeServer = new RuntimeServer(runtime);
     server.start('3000');
