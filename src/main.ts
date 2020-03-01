@@ -2,13 +2,15 @@ import { Runtime } from "./runtime";
 import { RuntimeServer } from "./http/server";
 import { Compiler } from "./storyscript/compiler";
 import { AppRepository } from "./postgres/apps";
+import { ServiceFactory } from "./service";
 
 async function main() {
     const compiler = new Compiler();
     await compiler.start();
 
     const appRepository: AppRepository = new AppRepository();
-    const runtime: Runtime = new Runtime(compiler, appRepository);
+    const serviceFactory: ServiceFactory = new ServiceFactory();
+    const runtime: Runtime = new Runtime(compiler, serviceFactory);
 
     const server: RuntimeServer = new RuntimeServer(runtime);
     server.start('3000');

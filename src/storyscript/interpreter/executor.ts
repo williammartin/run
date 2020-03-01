@@ -16,7 +16,10 @@ import {
 import {
   StoryVar,
   StoryContext,
+  StoryServiceValue,
 } from './types';
+
+import { RuntimeService } from "../../services/base";
 
 /**
  * Main executor for Storyscript code.
@@ -25,10 +28,12 @@ class Executor {
 
   private story: CompilerOutput;
   private context: StoryContext;
+  private executorFactory: ExecutorFactory;
 
-  constructor(story: CompilerOutput, context: StoryContext) {
+  constructor(story: CompilerOutput, context: StoryContext, runtimeServices: Map<string, RuntimeService>) {
     this.story = story;
     this.context = context;
+    this.executorFactory = new ExecutorFactory(runtimeServices);
   }
 
   body(line: string): CompilerLine {
@@ -49,7 +54,7 @@ class Executor {
   async exec(line: string): Promise<void> {
     const body = this.body(line);
 
-    await ExecutorFactory.from(body.method).exec(this.context, body);
+    await this.executorFactory.from(body.method).exec(this.context, body);
 
     // do not step into when blocks
     if (body.enter && body.method !== "when") {
@@ -116,12 +121,19 @@ export interface IStoryExecutor {
 }
 
 class ExecutorFactory {
-  public static from(method: string): IStoryExecutor {
+
+  private runtimeServices: Map<string, RuntimeService>;
+
+  constructor(services: Map<string, RuntimeService>) {
+    this.runtimeServices = services;
+  }
+
+  public from(method: string): IStoryExecutor {
     switch (method) {
-      // case "execute":
-      //   return new ServiceExecutor();
       case "expression":
         return new AssignmentExecutor();
+      case "execute":
+        return new ServiceExecutor(this.runtimeServices);
       // case "when":
         // return new WhenExecutor();
       default:
@@ -139,27 +151,34 @@ class NotImplementedExecutor implements IStoryExecutor {
 /**
  * Executors service commands.
  */
-// class ServiceExecutor implements IStoryExecutor {
-//   async exec(
-//     context: StoryContext,
-//     line: CompilerLine
-//   ): Promise<any> /*eslint-disable-line @typescript-eslint/no-explicit-any */ {
-//     // TODO: throw user-error if the service doesn't exist
-//     const service = context.services[line.service!];
+class ServiceExecutor implements IStoryExecutor {
 
-//     // services don't need to initialized anymore -> ignore block services
-//     if (!isNil(line.enter)) {
-//       const output = line.output![0];
-//       const serviceValue = new StoryServiceValue(service);
-//       context.setVar(output, new StoryVar(output, serviceValue));
-//       return;
-//     }
+  private runtimeServices: Map<string, RuntimeService>;
 
-//     const args = toCallArgs(context, line.args);
-//     const command = line.command!;
-//     return await service.action(command, args);
-//   }
-// }
+  constructor(services: Map<string, RuntimeService>) {
+    this.runtimeServices = services;
+  }
+
+  async exec(
+    context: StoryContext,
+    line: CompilerLine,
+  ): Promise<any> /*eslint-disable-line @typescript-eslint/no-explicit-any */ {
+    // TODO: throw user-error if the service doesn't exist
+    const runtimeService = this.runtimeServices.get(line.service!);
+
+    // services don't need to initialized anymore -> ignore block services
+    if (!isNil(line.enter)) {
+      const output = line.output![0];
+      const serviceValue = new StoryServiceValue(runtimeService!);
+      context.setVar(output, new StoryVar(output, serviceValue));
+      return;
+    }
+
+    const args = toCallArgs(context, line.args);
+    const command = line.command!;
+    return await (runtimeService as any) /*eslint-disable-line @typescript-eslint/no-explicit-any */[command].call(this, args);
+  }
+}
 
 // /**
 //  * Analyzes a `when` block and sets up its event subscription.

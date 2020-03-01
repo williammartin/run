@@ -19,6 +19,7 @@ import {
 
 import "reflect-metadata";
 import { StoryLineObject } from "../types";
+import { RuntimeService } from "../../services/base";
 
 /**
  * Variable context of a story.
@@ -84,7 +85,7 @@ const storyDiscriminator = (): Discriminator => {
             { value: StoryFloatValue, name: "float" },
             { value: StoryListValue, name: "list" },
             { value: StoryMapValue, name: "map" },
-            //   { value: StoryServiceValue, name: "service" },
+            { value: StoryServiceValue, name: "service" },
         ],
     };
 };
@@ -240,38 +241,21 @@ class StoryMapValue extends StoryValue {
 
 
 
-export class StoryServiceValue extends StoryValue {
+class StoryServiceValue extends StoryValue {
 
-    constructor(private readonly _value: string) {
+    @Transform(value => value.serviceName(), { toPlainOnly: true })
+    private readonly _value: RuntimeService;
+    constructor(value: RuntimeService) {
         super();
+        this._value = value;
     }
-    value(): string {
+    value(): RuntimeService {
         return this._value;
     }
-    sum(value: StoryValue): StoryValue {
-        if (!(value instanceof StoryValue)) {
-            throw new Error(`Invalid sum between ${typeof this} and ${typeof value}`);
-        }
-        let result = this.value();
-        if (value instanceof StoryStringValue) {
-            result += value.value();
-        } else {
-            result += value.toString();
-        }
-        return new StoryStringValue(result);
-    }
-    //   @Transform(value => value.serviceName(), { toPlainOnly: true })
-    //   private readonly _value: RuntimeService;
-    //   constructor(value: RuntimeService) {
-    //     super();
-    //     this._value = value;
-    //   }
-    //   value(): RuntimeService {
-    //     return this._value;
-    //   }
 
-    //   sum(value: StoryValue): StoryValue {
-    //     throw new Error(`Invalid sum between ${typeof this} and ${typeof value}`);
+    sum(value: StoryValue): StoryValue {
+        throw new Error(`Invalid sum between ${typeof this} and ${typeof value}`);
+    }
 }
 
 /***
@@ -317,6 +301,7 @@ export {
     StoryFloatValue,
     StoryMapValue,
     StoryListValue,
+    StoryServiceValue,
     StoryStringValue,
     StoryContext,
     StoryVar,
