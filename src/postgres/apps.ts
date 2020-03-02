@@ -9,9 +9,9 @@ class AppRepository {
     }
 
     public async store(app: App): Promise<void> {
-        this.apps.set(app.ID(), app);
+        this.apps.set(app.id, app);
     }
-    
+
     public async load(id: string): Promise<App> {
         const app = this.apps.get(id);
         if (app === undefined) {

@@ -20,31 +20,24 @@ import {
 } from './types';
 
 import { RuntimeService } from "../../services/base";
+import { App } from "../../app";
 
 /**
  * Main executor for Storyscript code.
  */
 class Executor {
 
-  private story: CompilerOutput;
-  private context: StoryContext;
-  private executorFactory: ExecutorFactory;
-
-  constructor(story: CompilerOutput, context: StoryContext, runtimeServices: Map<string, RuntimeService>) {
-    this.story = story;
-    this.context = context;
-    this.executorFactory = new ExecutorFactory(runtimeServices);
-  }
+  constructor(private app: App) {}
 
   body(line: string): CompilerLine {
-    return this.story.tree[line];
+    return this.app.story.tree[line];
   }
 
   /**
    * Run the initialization code of a story.
    */
   async run(): Promise<void> {
-    await this.exec(this.story.entrypoint);
+    await this.exec(this.app.story.entrypoint);
     // TODO: freeze globals as constants
   }
 
@@ -54,7 +47,7 @@ class Executor {
   async exec(line: string): Promise<void> {
     const body = this.body(line);
 
-    await this.executorFactory.from(body.method).exec(this.context, body);
+    await ExecutorFactory.from(body.method).exec(this.app, body);
 
     // do not step into when blocks
     if (body.enter && body.method !== "when") {
@@ -75,7 +68,7 @@ class Executor {
   async execBlock(line: CompilerLine): Promise<void> {
     assert(!isNil(line.enter));
 
-    await this.context.withFrame(async () => {
+    await this.app.context.withFrame(async () => {
       await this.exec(line.enter!);
     });
 
@@ -111,7 +104,7 @@ function toCallArgs(
   );
 }
 
-type StoryExecutorFn = (context: StoryContext, line: CompilerLine) => Promise<void>;
+type StoryExecutorFn = (app: App, line: CompilerLine) => Promise<void>;
 
 /**
  * Interface for a StoryExecutor that process an individual line.
@@ -122,20 +115,14 @@ export interface IStoryExecutor {
 
 class ExecutorFactory {
 
-  private runtimeServices: Map<string, RuntimeService>;
-
-  constructor(services: Map<string, RuntimeService>) {
-    this.runtimeServices = services;
-  }
-
-  public from(method: string): IStoryExecutor {
+  public static from(method: string): IStoryExecutor {
     switch (method) {
       case "expression":
         return new AssignmentExecutor();
       case "execute":
-        return new ServiceExecutor(this.runtimeServices);
-      // case "when":
-        // return new WhenExecutor();
+        return new ServiceExecutor();
+      case "when":
+        return new WhenExecutor();
       default:
         return new NotImplementedExecutor();
     }
@@ -143,7 +130,7 @@ class ExecutorFactory {
 }
 
 class NotImplementedExecutor implements IStoryExecutor {
-  async exec(context: StoryContext, line: CompilerLine): Promise<any> {
+  async exec(app: App, line: CompilerLine): Promise<any> {
     return Promise.reject(new Error('Method not implemented'))
   }
 }
@@ -153,57 +140,77 @@ class NotImplementedExecutor implements IStoryExecutor {
  */
 class ServiceExecutor implements IStoryExecutor {
 
-  private runtimeServices: Map<string, RuntimeService>;
-
-  constructor(services: Map<string, RuntimeService>) {
-    this.runtimeServices = services;
-  }
-
   async exec(
-    context: StoryContext,
+    app: App,
     line: CompilerLine,
   ): Promise<any> /*eslint-disable-line @typescript-eslint/no-explicit-any */ {
     // TODO: throw user-error if the service doesn't exist
-    const runtimeService = this.runtimeServices.get(line.service!);
+    const runtimeService = app.services.get(line.service!);
 
     // services don't need to initialized anymore -> ignore block services
     if (!isNil(line.enter)) {
       const output = line.output![0];
       const serviceValue = new StoryServiceValue(runtimeService!);
-      context.setVar(output, new StoryVar(output, serviceValue));
+      app.context.setVar(output, new StoryVar(output, serviceValue));
       return;
     }
 
-    const args = toCallArgs(context, line.args);
+    const args = toCallArgs(app.context, line.args);
     const command = line.command!;
     return await (runtimeService as any) /*eslint-disable-line @typescript-eslint/no-explicit-any */[command].call(this, args);
   }
 }
 
-// /**
-//  * Analyzes a `when` block and sets up its event subscription.
-//  */
-// class WhenExecutor implements IStoryExecutor {
-//   async exec(context: StoryContext, line: CompilerLine): Promise<void> {
-//     assert(line.method === "when");
-//     // TODO: handle non-existing service
-//     const service = context.getVar(line.service!).value.value();
-//     const command = line.command!;
-//     const args = toCallArgs(context, line.args);
-//     const output = line.output[0];
-//     await context.setupEvent(service, command, args, line.enter!, output);
-//   }
-// }
+/**
+ * Analyzes a `when` block and sets up its event subscription.
+ */
+class WhenExecutor implements IStoryExecutor {
+  async exec(app: App, line: CompilerLine): Promise<void> {
+    assert(line.method === "when");
+    // TODO: handle non-existing service
+    const service = app.context.getVar(line.service!).value.value();
+    const command = line.command!;
+    const args = toCallArgs(app.context, line.args);
+    const output = line.output[0];
+
+    const eventID: string = app.setupEvent(service, command, args, line.enter!, output);
+    await (service as any)[command].call(service, app.id, eventID, args);
+  }
+}
+
+// test("Deploy hello world", async () => {
+//   const log = Runtime.serviceRegistry.services.log as Function;
+//   log.prototype.info = jest.fn();
+//   let response = await agent(server)
+//     .post("/api/app/deploy")
+//     .send({
+//       source:
+//         'when http server listen path:"/" as res\n  log info msg: "{res.queryParams}"',
+//       appID: "my-app",
+//     });
+//   expect(response.text).toMatchSnapshot();
+//   expect(response.status).toBe(200);
+
+//   // submit an HTTP request to new app
+//   response = await agent(server).get("/services/http/in/my-app?q=42");
+//   expect(response.text).toMatchSnapshot();
+//   expect(response.status).toBe(200);
+
+//   const logInfo = log.prototype.info;
+//   expect(logInfo).toHaveBeenCalledTimes(1);
+//   expect(logInfo).toHaveBeenCalledWith({ msg: '{"q":"42"}' });
+// });
+
 
 /**
  * Handles normal expression and performs assignments in the current frame.
  */
 class AssignmentExecutor implements IStoryExecutor {
-  async exec(context: StoryContext, line: CompilerLine): Promise<void> {
-    const value = objectEval(context, line.args[0]);
+  async exec(app: App, line: CompilerLine): Promise<void> {
+    const value = objectEval(app.context, line.args[0]);
     const varName = line.name![0];
     // logger.info("executor.assign: ", { varName, value: value.toString() });
-    context.setVar(varName, new StoryVar(varName, value));
+    app.context.setVar(varName, new StoryVar(varName, value));
   }
 }
 

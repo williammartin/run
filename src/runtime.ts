@@ -12,26 +12,27 @@ interface AppRepository {
 }
 
 interface EventRepository {
-    store(event: Event): Promise<void>
-    load(id: string): Promise<App>
+    set(eventID: string, appID: string): Promise<void>
+    get(eventID: string): Promise<string>
 }
 
 interface Event {
-    appID: string,
-    eventID: string,
-    payload: any,
+    id: string;
+    payload: any /*eslint-disable-line @typescript-eslint/no-explicit-any */;
 }
 
 class Runtime {
 
     private compiler: Compiler;
     private serviceFactory: ServiceFactory;
-    // private appRepository: AppRepository;
+    private appRepository: AppRepository;
+    private eventRepository: EventRepository;
 
-    constructor(compiler: Compiler, serviceFactory: ServiceFactory) {
+    constructor(compiler: Compiler, serviceFactory: ServiceFactory, appRepository: AppRepository, eventRepository: EventRepository) {
         this.compiler = compiler;
         this.serviceFactory = serviceFactory;
-        // this.appRepository = appRepository;
+        this.appRepository = appRepository;
+        this.eventRepository = eventRepository;
     }
 
     public async deploy(appID: string, source: string): Promise<void> {
@@ -39,17 +40,18 @@ class Runtime {
 
         const story = await this.compiler.compile(source);
 
-        const app = new App(appID, story, this.serviceFactory);
+        const app = new App(appID, story, this.serviceFactory, this.eventRepository);
         await app.start();
 
+        await this.appRepository.store(app);
         return Promise.resolve();
-        // this.appRepository.store(app);
     }
 
-    // public async handleEvent(event: Event): Promise<void> {
-    //     const app = this.appRepository.load(event.appID);
-    //     await app.trigger(event);
-    // }
+    public async triggerEvent(event: Event): Promise<void> {
+        const appID = await this.eventRepository.get(event.id);
+        const app = await this.appRepository.load(appID);
+        return app.exec(event.id, event.payload);
+    }
 }
 
 export { Runtime }

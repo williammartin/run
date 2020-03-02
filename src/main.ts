@@ -3,17 +3,20 @@ import { RuntimeServer } from "./http/server";
 import { Compiler } from "./storyscript/compiler";
 import { AppRepository } from "./postgres/apps";
 import { ServiceFactory } from "./service";
+import EventRepository from "./events";
 
 async function main() {
     const compiler = new Compiler();
     await compiler.start();
 
-    const appRepository: AppRepository = new AppRepository();
     const serviceFactory: ServiceFactory = new ServiceFactory();
-    const runtime: Runtime = new Runtime(compiler, serviceFactory);
+    const appRepository: AppRepository = new AppRepository();
+    const eventRepository: EventRepository = new EventRepository();
+
+    const runtime: Runtime = new Runtime(compiler, serviceFactory, appRepository, eventRepository);
 
     const server: RuntimeServer = new RuntimeServer(runtime);
-    server.start('3000');
+    server.start('9001');
 }
 
 function getEnvOrError(envVar: string): string {

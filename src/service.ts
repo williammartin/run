@@ -1,5 +1,6 @@
 import { RuntimeService } from "./services/base";
 import { LogService } from "./services/log";
+import { HTTPService } from "./services/http";
 
 class ServiceFactory {
 
@@ -7,6 +8,8 @@ class ServiceFactory {
         switch(name) {
             case 'log':
                 return new LogService();
+            case 'http':
+                return new HTTPService('http://localhost:9000');
             default:
                 return new NonExistentService(name);
         }
