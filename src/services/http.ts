@@ -8,7 +8,7 @@ class HTTPService implements RuntimeService {
 
   constructor(serviceURL: string) {
     this.serviceURL = serviceURL;
-    this.httpClient = new rm.HttpClient('graphile-worker', [], {
+    this.httpClient = new rm.HttpClient('http-service', [], {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
