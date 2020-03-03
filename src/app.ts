@@ -1,11 +1,12 @@
-import { CompilerOutput } from "./storyscript/types";
-import { Executor } from "./storyscript/interpreter/executor";
-import { StoryContext, StoryVar, plainToValue, StoryServiceValue } from "./storyscript/interpreter/types";
-import { ServiceFactory } from "./services/factory";
-import { RuntimeService } from "./services/base";
+import { RuntimeService } from './services/base';
+import { ServiceFactory } from './services/factory';
+import { Executor } from './storyscript/interpreter/executor';
+import { plainToValue, StoryContext, StoryVar } from './storyscript/interpreter/types';
+import { CompilerOutput } from './storyscript/types';
 
 interface EventRepository {
     set(appID: string): Promise<string>
+    remove(eventID: string): Promise<void>
 }
 
 type Event = {
@@ -42,6 +43,16 @@ class App {
         return new Executor(this).run();
     }
 
+    public async stop(): Promise<void> {
+        console.log(this.events);
+        const deregistrations: Promise<void>[] = []
+        this.events.forEach((event: Event) => {
+            deregistrations.push(this.deregisterEvent(event))
+        });
+
+        await Promise.all(deregistrations);
+    }
+
     public async exec(eventID: string, payload: any): Promise<void> {
         const event = this.events.get(eventID);
         // TODO: Handle this properly
@@ -53,7 +64,7 @@ class App {
         await new Executor(this).exec(event.line);
     }
 
-    public async setupEvent(
+    public async registerEvent(
         service: string,
         command: string,
         args: {
@@ -72,10 +83,26 @@ class App {
             args
         };
 
+        console.log(event);
+
         this.events.set(eventID, event);
         return eventID;
     }
+
+    public async deregisterEvent(event: Event): Promise<void> {
+        console.log(event)
+
+        const service = this.services.get(event.service);
+        // It's sad that service calls are split between here and the executor. Perhaps the executor should call back out for both actions and events
+        const method = (service as any)[`un${event.command}`] as UnlistenFn; // eslint-disable-line @typescript-eslint/no-explicit-any
+        await method.call(service, event.eventID);
+
+        this.events.delete(event.eventID);
+        await this.eventRepository.remove(event.eventID);
+    }
 }
+
+type UnlistenFn = (eventID: string) => Promise<void>;
 
 export {
     App,

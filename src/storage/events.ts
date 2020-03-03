@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid'
+import { v4 as uuid } from 'uuid';
 
 class EventRepository {
 
@@ -16,6 +16,11 @@ class EventRepository {
 
     public async get(eventID: string): Promise<string> {
         return this.events.get(eventID)!;
+    }
+
+    public async remove(eventID: string): Promise<void> {
+        this.events.delete(eventID);
+        return;
     }
 }
 

@@ -1,4 +1,4 @@
-import { App } from "../app";
+import { App } from '../app';
 
 class AppRepository {
 
@@ -19,6 +19,14 @@ class AppRepository {
         }
 
         return Promise.resolve(app);
+    }
+
+    public async contains(id: string): Promise<boolean> {
+        return this.apps.has(id);
+    }
+
+    public async log(): Promise<void> {
+        console.log(this.apps);
     }
 }
 

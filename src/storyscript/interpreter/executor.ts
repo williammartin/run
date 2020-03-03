@@ -1,33 +1,19 @@
-import { isNil, reduce } from "lodash";
+import assert = require('assert');
+import { isNil, reduce } from 'lodash';
+
+import { App } from '../../app';
+import { CompilerLine, StoryLineObject, StoryLineObjectTypes } from '../types';
+import objectEval from './objectEval';
+import { StoryContext, StoryServiceValue, StoryVar } from './types';
 
 // import logger from "@logger";
-
-import assert = require("assert");
-
-import objectEval from "./objectEval";
-
-import {
-  CompilerLine,
-  StoryLineObject,
-  StoryLineObjectTypes,
-  CompilerOutput,
-} from "../types";
-
-import {
-  StoryVar,
-  StoryContext,
-  StoryServiceValue,
-} from './types';
-
-import { RuntimeService } from "../../services/base";
-import { App } from "../../app";
 
 /**
  * Main executor for Storyscript code.
  */
 class Executor {
 
-  constructor(private app: App) {}
+  constructor(private app: App) { }
 
   body(line: string): CompilerLine {
     return this.app.story.tree[line];
@@ -59,7 +45,7 @@ class Executor {
 
   async execNext(line: string): Promise<void> {
     const body = this.body(line);
-    
+
     if (!isNil(body.next)) {
       await this.exec(body.next!);
     }
@@ -173,34 +159,10 @@ class WhenExecutor implements IStoryExecutor {
     const args = toCallArgs(app.context, line.args);
     const output = line.output[0];
 
-    const eventID: string = await app.setupEvent(service, command, args, line.enter!, output);
+    const eventID: string = await app.registerEvent(service.name(), command, args, line.enter!, output);
     await (service as any)[command].call(service, app.id, eventID, args);
   }
 }
-
-// test("Deploy hello world", async () => {
-//   const log = Runtime.serviceRegistry.services.log as Function;
-//   log.prototype.info = jest.fn();
-//   let response = await agent(server)
-//     .post("/api/app/deploy")
-//     .send({
-//       source:
-//         'when http server listen path:"/" as res\n  log info msg: "{res.queryParams}"',
-//       appID: "my-app",
-//     });
-//   expect(response.text).toMatchSnapshot();
-//   expect(response.status).toBe(200);
-
-//   // submit an HTTP request to new app
-//   response = await agent(server).get("/services/http/in/my-app?q=42");
-//   expect(response.text).toMatchSnapshot();
-//   expect(response.status).toBe(200);
-
-//   const logInfo = log.prototype.info;
-//   expect(logInfo).toHaveBeenCalledTimes(1);
-//   expect(logInfo).toHaveBeenCalledWith({ msg: '{"q":"42"}' });
-// });
-
 
 /**
  * Handles normal expression and performs assignments in the current frame.
