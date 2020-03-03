@@ -1,6 +1,6 @@
-import { RuntimeService } from "./services/base";
-import { LogService } from "./services/log";
-import { HTTPService } from "./services/http";
+import { RuntimeService } from "./base";
+import { LogService } from "./log";
+import { HTTPService } from "./http";
 
 class ServiceFactory {
 

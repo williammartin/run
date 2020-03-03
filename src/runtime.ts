@@ -1,6 +1,7 @@
 import { CompilerOutput } from "./storyscript/types";
 import { App } from "./app";
-import { ServiceFactory } from "./service";
+import { ServiceFactory } from "./services/factory";
+
 
 interface Compiler {
     compile(source: string): Promise<CompilerOutput>
