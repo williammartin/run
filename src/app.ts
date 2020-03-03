@@ -3,7 +3,10 @@ import { Executor } from "./storyscript/interpreter/executor";
 import { StoryContext, StoryVar, plainToValue, StoryServiceValue } from "./storyscript/interpreter/types";
 import { ServiceFactory } from "./service";
 import { RuntimeService } from "./services/base";
-import EventRepository from "./events";
+
+interface EventRepository {
+    set(eventID: string, appID: string): Promise<void>
+}
 
 type Event = {
     eventID: string;
@@ -79,78 +82,6 @@ class App {
         this.events.set(eventID, event);
         return eventID;
       }
-
-    //   public serialise(): string {
-    //     const services = mapValues(this.services, service => service.serialize());
-    //     let context = omitBy(this.context, (v, k) => k === "app");
-    //     context = classToPlain(context);
-    //     // TODO: serialize context
-    //     return JSON.stringify({
-    //       id: this.id,
-    //       events: this.events,
-    //       context,
-    //       services,
-    //       story: this.story,
-    //     });
-    //   }
-    
-    //   /**
-    //    * Allows to load an app from the database into memory.
-    //    */
-    //   public static from(value: string): App {
-    //     const { services, story, context, id, ...attrs } = JSON.parse(value);
-    //     const app = Object.assign(new App(id, story), attrs);
-    
-    //     // restore service attributes
-    //     forEach(services, (
-    //       v: any /*eslint-disable-line @typescript-eslint/no-explicit-any */,
-    //       k: string
-    //     ) => {
-    //       Object.assign(app.services[k], v);
-    //     });
-    
-    //     // context requires more special work
-    //     // 1) deserialize + inject app into the context
-    //     const restoredContext = plainToClass(StoryContext, context);
-    //     Object.defineProperty(restoredContext, "app", {
-    //       value: app,
-    //       writable: false,
-    //     });
-    //     app.context = restoredContext;
-    
-    //     // 2) fix-up service vars and inject the full service
-    //     forEach(app.context.frames, frame => {
-    //       forEach(frame, v => {
-    //         const val = v.value;
-    //         if (val instanceof StoryServiceValue) {
-    //           Object.defineProperty(val, "_value", {
-    //             value: app.services[(val.value() as unknown) as string],
-    //             writable: false,
-    //           });
-    //         }
-    //       });
-    //     });
-    //     return app;
-    //   }
-
-    // public serialise(): string {
-    //     return this.id
-        // const services = mapValues(this.services, service => service.serialize());
-        // let context = omitBy(this.context, (v, k) => k === "app");
-        // context = classToPlain(context);
-        // // TODO: serialize context
-        // return JSON.stringify({
-        //   id: this.id,
-        //   events: this.events,
-        //   context,
-        //   services,
-        //   story: this.story,
-        // });
-    // }
-
-    // public static from(seralised: string): App {
-        // return new App(seralised, {} as CompilerOutput);
-    // }
 }
 
 export {
