@@ -12,7 +12,7 @@ interface AppRepository {
 }
 
 interface EventRepository {
-    set(eventID: string, appID: string): Promise<void>
+    set(appID: string): Promise<string>
     get(eventID: string): Promise<string>
 }
 

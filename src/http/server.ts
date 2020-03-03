@@ -12,7 +12,6 @@ class RuntimeServer {
 
   public async start(port: string): Promise<any> {
 
-    // const appController = new AppController(' bla')
     useContainer(Container);
 
     console.log(__dirname)

@@ -5,7 +5,7 @@ import { ServiceFactory } from "./service";
 import { RuntimeService } from "./services/base";
 
 interface EventRepository {
-    set(eventID: string, appID: string): Promise<void>
+    set(appID: string): Promise<string>
 }
 
 type Event = {
@@ -39,10 +39,7 @@ class App {
     }
 
     public async start(): Promise<void> {
-        await new Executor(this).run();
-
-        console.log(this.context.frames)
-        return Promise.resolve();
+        return new Executor(this).run();
     }
 
     public async exec(eventID: string, payload: any): Promise<void> {
@@ -56,7 +53,7 @@ class App {
         await new Executor(this).exec(event.line);
     }
 
-    public setupEvent(
+    public async setupEvent(
         service: string,
         command: string,
         args: {
@@ -64,12 +61,8 @@ class App {
         },
         line: string,
         output: string
-      ): string {
-        // const eventID = await events.register(this.id);
-        // TODO: check params
-        // TODO: auto-inject custom-params based on attributes
-        const eventID = 'foo';
-        this.eventRepository.set(eventID, this.id);
+      ): Promise<string> {
+        const eventID = await this.eventRepository.set(this.id);
         const event: Event = {
           output,
           line,

@@ -43,25 +43,8 @@ class AppController {
 
   @Post("/events")
   async handleEvents(@Body() event: Event): Promise<object> {
-    console.log(event);
-
     await this.runtime.triggerEvent(event);
     return { status: 200 }
-
-    // // don't load from memory as the request might be on a different worker
-    // // simulate deserializing instead
-    // // TODO: log event + track event execution errors
-    // const appID = await events.getApp(event.id);
-    // const app = apps[appID];
-    // if (app === undefined) {
-    //   throw new Error(
-    //     `Invalid event: ${event.id}. App: ${appID} doesn't exist.`
-    //   );
-    // }
-    // const storedApp = apps[appID].storedApp!;
-    // const runtimeApp = App.load(storedApp);
-    // await runtimeApp.triggerEvent(event.id, event.payload);
-    return {};
   }
 }
 

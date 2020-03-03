@@ -3,7 +3,7 @@ import { RuntimeServer } from "./http/server";
 import { Compiler } from "./storyscript/compiler";
 import { AppRepository } from "./postgres/apps";
 import { ServiceFactory } from "./service";
-import EventRepository from "./events";
+import { EventRepository } from "./events";
 
 async function main() {
     const compiler = new Compiler();

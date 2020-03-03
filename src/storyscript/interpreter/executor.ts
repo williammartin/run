@@ -173,7 +173,7 @@ class WhenExecutor implements IStoryExecutor {
     const args = toCallArgs(app.context, line.args);
     const output = line.output[0];
 
-    const eventID: string = app.setupEvent(service, command, args, line.enter!, output);
+    const eventID: string = await app.setupEvent(service, command, args, line.enter!, output);
     await (service as any)[command].call(service, app.id, eventID, args);
   }
 }
