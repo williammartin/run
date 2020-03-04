@@ -1,4 +1,4 @@
-interface RuntimeService{
+interface RuntimeService {
     name(): string
 }
 

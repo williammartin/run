@@ -1,6 +1,7 @@
-import { JsonController, Body, Post } from "routing-controllers";
-import { Runtime } from "../../runtime";
-import {Container} from "typedi";
+import { Body, JsonController, Post } from 'routing-controllers';
+import { Container } from 'typedi';
+
+import { Runtime } from '../../runtime';
 
 
 interface AppRequest {
@@ -37,8 +38,9 @@ class AppController {
 
   @Post("/deploy")
   public async deploy(@Body() req: DeployRequest): Promise<DeployResponse> {
-      await this.runtime.deploy(req.appID, req.source)
-      return { status: 200, appID: req.appID }
+    console.log(`received deploy request: ${req}`)
+    await this.runtime.deploy(req.appID, req.source)
+    return { status: 200, appID: req.appID }
   }
 
   @Post("/events")
@@ -49,5 +51,5 @@ class AppController {
 }
 
 export {
-    AppController,
+  AppController,
 };
